@@ -1,0 +1,24 @@
+defaults:
+  - default
+
+simclr:
+  batch_size: 4
+  num_workers: 0
+  prefetch_factor: 1
+  train:
+    fast_debug: true
+  val:
+    fast_debug: true
+  test:
+    fast_debug: true
+
+clip:
+  batch_size: 4
+  num_workers: 0
+  prefetch_factor: 1
+  train:
+    fast_debug: true
+  val:
+    fast_debug: true
+  test:
+    fast_debug: true

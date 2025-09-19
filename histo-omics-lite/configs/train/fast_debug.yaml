@@ -1,0 +1,14 @@
+defaults:
+  - default
+
+simclr:
+  trainer:
+    max_epochs: 1
+    limit_train_batches: 4
+    limit_val_batches: 2
+
+clip:
+  trainer:
+    max_epochs: 1
+    limit_train_batches: 4
+    limit_val_batches: 2

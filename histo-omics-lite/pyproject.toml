@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "histo-omics-lite"
+version = "0.1.0"
+description = "Lightweight histology + omics contrastive learning stack"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Artemis Folle"}]
+keywords = ["histology", "omics", "contrastive", "pytorch-lightning"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+]
+dependencies = [
+  "torch>=2.2.0",
+  "torchvision>=0.17.0",
+  "lightning>=2.2.0",
+  "webdataset>=0.2.57",
+  "hydra-core>=1.3",
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "pyarrow>=13.0",
+  "scikit-learn>=1.3",
+  "umap-learn>=0.5",
+  "matplotlib>=3.7",
+  "pillow>=9.5",
+  "torchmetrics>=1.3",
+  "grad-cam>=1.5",
+  "rich>=13.0",
+  "typer>=0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.8",
+  "ruff>=0.3",
+  "pytest>=7.4",
+  "pytest-timeout>=2.2",
+  "pytest-cov>=4.1",
+  "build>=1.0",
+]
+
+[project.scripts]
+histo-train = "histo_omics_lite.training.train:main"
+histo-eval = "histo_omics_lite.evaluation.evaluate:main"
+histo-infer = "histo_omics_lite.inference.cli:main"
+histo-shards = "histo_omics_lite.data.shard_maker:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+strict_optional = true
+ignore_missing_imports = true
+packages = ["histo_omics_lite"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N"]
+ignore = ["E203", "E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = [
+  "ignore::UserWarning",
+]

@@ -1,0 +1,17 @@
+FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    TORCH_CUDA_ARCH_LIST="" \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=all
+
+WORKDIR /workspace
+COPY pyproject.toml README.md Makefile .pre-commit-config.yaml ./
+COPY src ./src
+COPY configs ./configs
+COPY docker ./docker
+
+RUN pip install --upgrade pip \
+    && pip install .
+
+CMD ["python", "-m", "histo_omics_lite.training.train"]

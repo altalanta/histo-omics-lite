@@ -1,0 +1,16 @@
+simclr:
+  projection_dim: 128
+  projection_hidden_dim: 512
+  lr: 1.0e-3
+  weight_decay: 1.0e-5
+  temperature: 0.2
+
+clip:
+  omics_dim: 128
+  embed_dim: 256
+  image_hidden_dim: 512
+  omics_hidden_dim: 512
+  temperature: 0.2
+  lr: 3.0e-4
+  weight_decay: 1.0e-5
+  freeze_encoder: false

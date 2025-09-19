@@ -1,0 +1,51 @@
+data_root: ${hydra:runtime.cwd}/data/synthetic
+shard_dir: ${data.data_root}/wds
+omics_dir: ${data.data_root}/tables
+
+simclr:
+  train:
+    shards: ${data.shard_dir}/train-*.tar
+    omics_table: null
+    include_omics: false
+    return_two_views: true
+  val:
+    shards: ${data.shard_dir}/val-*.tar
+    omics_table: null
+    include_omics: false
+    return_two_views: true
+  test:
+    shards: ${data.shard_dir}/val-*.tar
+    omics_table: null
+    include_omics: false
+    return_two_views: true
+  batch_size: 16
+  num_workers: 2
+  prefetch_factor: 2
+  pin_memory: false
+  persistent_workers: false
+  image_size: 224
+  log_every: 512
+
+clip:
+  train:
+    shards: ${data.shard_dir}/train-*.tar
+    omics_table: ${data.omics_dir}/omics_train.parquet
+    include_omics: true
+    return_two_views: false
+  val:
+    shards: ${data.shard_dir}/val-*.tar
+    omics_table: ${data.omics_dir}/omics_val.parquet
+    include_omics: true
+    return_two_views: false
+  test:
+    shards: ${data.shard_dir}/val-*.tar
+    omics_table: ${data.omics_dir}/omics_val.parquet
+    include_omics: true
+    return_two_views: false
+  batch_size: 16
+  num_workers: 2
+  prefetch_factor: 2
+  pin_memory: false
+  persistent_workers: false
+  image_size: 224
+  log_every: 512

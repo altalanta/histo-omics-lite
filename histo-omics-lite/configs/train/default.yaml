@@ -1,0 +1,23 @@
+seed: 42
+
+simclr:
+  enabled: true
+  checkpoint_path: outputs/simclr.ckpt
+  trainer:
+    accelerator: cpu
+    devices: 1
+    max_epochs: 2
+    log_every_n_steps: 5
+    enable_checkpointing: false
+    gradient_clip_val: 1.0
+    deterministic: true
+
+clip:
+  checkpoint_path: outputs/clip.ckpt
+  trainer:
+    accelerator: cpu
+    devices: 1
+    max_epochs: 3
+    log_every_n_steps: 5
+    enable_checkpointing: false
+    deterministic: true

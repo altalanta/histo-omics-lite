@@ -1,0 +1,18 @@
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY pyproject.toml README.md Makefile .pre-commit-config.yaml ./
+COPY src ./src
+COPY configs ./configs
+COPY docker ./docker
+
+RUN pip install --upgrade pip \
+    && pip install .
+
+CMD ["python", "-m", "histo_omics_lite.training.train", "train.clip.trainer.max_epochs=1"]
