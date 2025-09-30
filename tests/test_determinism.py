@@ -80,7 +80,7 @@ def test_training_hash_is_stable(tmp_path: Path) -> None:
 
     # Both runs should produce identical hashes due to fixed seeds
     assert digest1 == digest2
-    
+
     # The hash should match the expected value for these specific parameters
     expected_hash = "32d359d832015c54b690a0f87047c7d4a8e511e95afa7f777c35e7faca58bf32"
     assert digest1 == expected_hash
