@@ -1,0 +1,72 @@
+# Multi-stage build for minimal CPU image
+FROM python:3.11-slim as builder
+
+# Install system dependencies for building
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY pyproject.toml ./
+COPY src/ ./src/
+COPY README.md ./
+
+# Install package in build mode
+RUN pip install --no-cache-dir build && \
+    python -m build --wheel
+
+# Production stage
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash histo-omics
+
+# Set working directory
+WORKDIR /app
+
+# Copy wheel from builder
+COPY --from=builder /app/dist/*.whl ./
+
+# Install the package with CPU extras
+RUN pip install --no-cache-dir *.whl[cpu] && \
+    rm *.whl
+
+# Copy scripts and configs
+COPY scripts/ ./scripts/
+COPY configs/ ./configs/
+COPY Makefile ./
+
+# Create directories
+RUN mkdir -p data results docs && \
+    chown -R histo-omics:histo-omics /app
+
+# Switch to non-root user
+USER histo-omics
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV TORCH_HOME=/app/.cache/torch
+ENV MPLCONFIGDIR=/app/.cache/matplotlib
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import histo_omics_lite; print('OK')" || exit 1
+
+# Default command runs smoke test
+CMD ["make", "smoke"]
+
+# Labels
+LABEL org.opencontainers.image.title="histo-omics-lite"
+LABEL org.opencontainers.image.description="Minimal histology-omics alignment package"
+LABEL org.opencontainers.image.source="https://github.com/altalanta/histo-omics-lite"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.licenses="Apache-2.0"

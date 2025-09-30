@@ -23,10 +23,12 @@ def main() -> None:
     dataset = HistoOmicsDataset(
         image_root=Path("data/synthetic/tiles"),
         omics_csv=Path("data/synthetic/omics.csv"),
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-        ]),
+        transform=transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+            ]
+        ),
     )
     loader = DataLoader(dataset, batch_size=32, shuffle=False)
     model = HistoOmicsModule.load_from_checkpoint(checkpoint, map_location="cpu")
@@ -37,7 +39,9 @@ def main() -> None:
     label_batches = []
     with torch.no_grad():
         for batch in loader:
-            img_emb, omics_emb = model.encode_batch({"image": batch["image"], "omics": batch["omics"]})
+            img_emb, omics_emb = model.encode_batch(
+                {"image": batch["image"], "omics": batch["omics"]}
+            )
             image_batches.append(img_emb)
             omics_batches.append(omics_emb)
             label_batches.append(batch["label"])
