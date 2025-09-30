@@ -1,91 +1,46 @@
 # histo-omics-lite
 
-Lightweight, production-style PyTorch Lightning project for self-supervised histology encoders and multimodal alignment with transcriptomic features.
-
-## Features
-- SimCLR pretraining on 256×256 histology tiles (ResNet-18 backbone).
-- CLIP-style multimodal head aligning image and omics embeddings with InfoNCE.
-- WebDataset pipeline with deterministic augmentations, async prefetch, throughput logging, and shard tooling.
-- Synthetic data generator producing realistic-looking tiles plus omics parquet files to keep the stack runnable on a laptop.
-- Hydra-driven two-stage training, optional Torch profiler, and DDP-ready Trainer configs.
-- Evaluation CLI with retrieval metrics, bootstrap CIs, UMAP visualisation, and Grad-CAM heatmaps.
-- Typer inference CLI exporting embeddings for new tiles + omics cohorts.
+Minimal, fully synthetic histology × omics alignment package with a deterministic training and evaluation pipeline. The project wires a tiny ResNet18 encoder for image tiles with a two-layer MLP for omics features and optimises an InfoNCE contrastive objective. Everything runs on CPU in under five minutes and ships with CI, tests, and reproducible smoke coverage.
 
 ## Quickstart
+
 ```bash
-python -m pip install --upgrade pip
-pip install -e .[dev]
-
-# Create synthetic shards + tables (data/synthetic/...)
-python -m histo_omics_lite.data.shard_maker synthetic --train-samples 256 --val-samples 64
-
-# Rapid training on CPU
-python -m histo_omics_lite.training.train data=fast_debug train=fast_debug
-
-# Full config (adjust via Hydra overrides)
-python -m histo_omics_lite.training.train
+make setup     # install histo-omics-lite in editable mode plus tooling
+make data      # generate synthetic tiles + omics tables under data/synthetic
+make smoke     # train with the fast_debug config and run a retrieval smoke check
 ```
 
-Key overrides:
-- `train.simclr.enabled=false` to skip pretraining when reusing a checkpoint.
-- `train.simclr.trainer.strategy=ddp` (or `train.clip.trainer.strategy=ddp`) for multi-GPU runs.
-- `train.simclr.trainer.profiler=advanced` to enable the Torch profiler hooks.
+`make smoke` chains `make data`, performs a single-epoch CPU training run, and validates retrieval metrics from the exported checkpoint. Expect the full pipeline to complete in roughly three minutes on a standard laptop.
 
-## Evaluation & Inference
-```bash
-# Retrieval metrics, bootstrap CIs, UMAP, Grad-CAM assets
-python -m histo_omics_lite.evaluation.evaluate run --checkpoint outputs/clip.ckpt --output-dir reports/eval
+## Additional tasks
 
-# Embed new tiles and omics vectors
-python -m histo_omics_lite.inference.cli embed \
-  --checkpoint outputs/clip.ckpt \
-  --tiles-dir data/synthetic/tiles/val \
-  --omics-table data/synthetic/tables/omics_val.parquet \
-  --output-dir outputs/inference
-```
+- `make lint` – static analysis with `ruff` (style and import order).
+- `make format` – format code via `ruff format`.
+- `make type` – strict `mypy` type checking on `src/`.
+- `make test` – execute the pytest suite (coverage thresholds enforced via `pyproject.toml`).
+- `make build` – build an sdist and wheel via `python -m build`.
 
-## Project Layout
+## Project layout
+
 ```
 src/histo_omics_lite/
-  data/        # WebDataset pipeline, synthetic generator, shard tools
-  models/      # SimCLR + CLIP LightningModules and losses
-  training/    # Hydra entrypoint orchestrating the two-stage workflow
-  evaluation/  # Retrieval metrics + diagnostics CLI
-  inference/   # Typer CLI for batch embedding export
-configs/       # Hydra configs (data/model/train + fast_debug overrides)
-docker/        # CPU and CUDA Dockerfiles
-notebooks/     # Scientist-friendly quickstarts
+├── data/            # synthetic dataset helpers + dataset loader wrapper
+├── models/          # ResNet18 vision encoder, omics MLP, InfoNCE head
+├── training/        # LightningModule, Hydra-backed config loader, smoke trainer
+├── evaluation/      # retrieval metrics (top-1/top-5, AUROC)
+├── inference/       # CLI to export embeddings from a checkpoint
+└── utils/           # deterministic seeding + embedding hashing
 ```
 
-## Testing & Quality
-```bash
-make lint      # Ruff linting
-make format    # Ruff formatter
-make type      # mypy
-make test      # Pytest suite (includes 30-second CPU e2e smoke test)
-make build     # Build wheel via python -m build
-```
+Synthetic data generation lives in `histo_omics_lite.data.synthetic.make_tiny`, which writes 64 RGB tiles (64×64) and a 50-gene CSV table. Loading is handled by `histo_omics_lite.data.loader.HistoOmicsDataset`, defaulting to `ImageFolder`; the optional WebDataset flag intentionally raises because this lite distribution stays file-system only.
 
-GitHub Actions (`.github/workflows/ci.yaml`) mirrors the local targets and caches pip installs for quicker runs.
+The training entry point (`python -m histo_omics_lite.training.train`) uses Hydra configs stored under `configs/train/`. The default `fast_debug` profile mirrors the smoke test settings (batch size 16, 1 epoch, CPU). All randomness flows through `histo_omics_lite.utils.determinism.set_determinism`, and the tests assert the first 10 embeddings remain stable.
 
-## Model Card
-- **Intended use**: experimentation with histology tile encoders and multimodal alignment research. Designed for synthetic or de-identified data.
-- **Not for**: clinical diagnosis, patient-level decision making, or deployment without rigorous validation and regulatory review.
-- **Training data**: by default synthetic textures plus Gaussian omics vectors; replace with institution-approved datasets for real studies.
-- **Evaluation**: includes retrieval accuracy (top-1/top-5), bootstrap confidence intervals, UMAP visualisation, and Grad-CAM overlays.
-- **Fairness & ethics**: users must audit for cohort imbalance, staining shifts, and transcriptional batch effects before any downstream usage.
+## Limitations and scope
 
-## Omics Normalisation Note
-Alignment quality is sensitive to feature scaling. Normalise transcriptomic vectors before training/inference (e.g., log CPM + z-score per gene). The synthetic generator emits already-standardised vectors, but real data typically needs:
-1. Library size normalisation (CPM/TPM).
-2. Log transform + small pseudocount.
-3. Gene-wise centering and scaling to unit variance.
-Keep the same pipeline for training and inference to avoid distribution shift.
+- Synthetic-only: no real-world pathology data or external downloads.
+- CPU-focused: everything is configured for CPU execution; GPU accelerators are not required.
+- WebDataset is deliberately disabled; file-based ImageFolder data is the supported path.
+- Models are intentionally tiny to keep runtime and resource usage low.
 
-## Reproducibility
-- Deterministic worker seeding for WebDataset loaders.
-- Configurable random seeds via `train.seed` (propagates to Lightning and NumPy).
-- Checkpoints saved after SimCLR pretrain and CLIP alignment.
-
-## License
-MIT License. See `LICENSE` if provided.
+See [`MODEL_CARD.md`](MODEL_CARD.md) and [`DATASET_SHEET.md`](DATASET_SHEET.md) for additional context on intended use, risks, and synthetic data notes.
