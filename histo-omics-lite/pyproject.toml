@@ -1,81 +1,206 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "histo-omics-lite"
 version = "0.1.0"
-description = "Lightweight histology + omics contrastive learning stack"
+description = "Lightweight histology×omics alignment with a tiny, CPU-only pipeline"
 readme = "README.md"
-requires-python = ">=3.10"
-authors = [{name = "Artemis Folle"}]
-keywords = ["histology", "omics", "contrastive", "pytorch-lightning"]
-classifiers = [
-  "Programming Language :: Python :: 3",
-  "License :: OSI Approved :: MIT License",
-  "Intended Audience :: Science/Research",
+license = {text = "MIT"}
+authors = [
+    {name = "Altalanta", email = "contact@altalanta.ai"}
 ]
+maintainers = [
+    {name = "Altalanta", email = "contact@altalanta.ai"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+keywords = ["histology", "omics", "multimodal", "alignment", "pytorch", "lightning"]
 dependencies = [
-  "torch>=2.2.0",
-  "torchvision>=0.17.0",
-  "lightning>=2.2.0",
-  "webdataset>=0.2.57",
-  "hydra-core>=1.3",
-  "numpy>=1.24",
-  "pandas>=2.0",
-  "pyarrow>=13.0",
-  "scikit-learn>=1.3",
-  "umap-learn>=0.5",
-  "matplotlib>=3.7",
-  "pillow>=9.5",
-  "torchmetrics>=1.3",
-  "grad-cam>=1.5",
-  "rich>=13.0",
-  "typer>=0.9",
+    "torch>=2.0.0,<3.0.0",
+    "pytorch-lightning>=2.0.0,<3.0.0",
+    "numpy>=1.24.0,<2.0.0",
+    "pandas>=2.0.0,<3.0.0",
+    "typer>=0.9.0,<1.0.0",
+    "hydra-core>=1.3.0,<2.0.0",
+    "omegaconf>=2.3.0,<3.0.0",
+    "pydantic>=2.0.0,<3.0.0",
+    "pydantic-settings>=2.0.0,<3.0.0",
+    "scikit-learn>=1.3.0,<2.0.0",
+    "matplotlib>=3.7.0,<4.0.0",
+    "seaborn>=0.12.0,<1.0.0",
+    "tqdm>=4.64.0,<5.0.0",
+    "rich>=13.0.0,<14.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "mypy>=1.8",
-  "ruff>=0.3",
-  "pytest>=7.4",
-  "pytest-timeout>=2.2",
-  "pytest-cov>=4.1",
-  "build>=1.0",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "pre-commit>=3.0.0",
+    "bandit[toml]>=1.7.0",
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.2.0",
+    "mkdocstrings[python]>=0.23.0",
+    "build>=0.10.0",
+    "twine>=4.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.2.0",
+    "mkdocstrings[python]>=0.23.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/altalanta/histo-omics-lite"
+Documentation = "https://altalanta.github.io/histo-omics-lite/"
+Repository = "https://github.com/altalanta/histo-omics-lite.git"
+Issues = "https://github.com/altalanta/histo-omics-lite/issues"
+Changelog = "https://github.com/altalanta/histo-omics-lite/blob/main/CHANGELOG.md"
+
 [project.scripts]
-histo-train = "histo_omics_lite.training.train:main"
-histo-eval = "histo_omics_lite.evaluation.evaluate:main"
-histo-infer = "histo_omics_lite.inference.cli:main"
-histo-shards = "histo_omics_lite.data.shard_maker:main"
+histo-omics-lite = "histo_omics_lite.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["histo_omics_lite*"]
 
-[tool.mypy]
-python_version = "3.10"
-warn_unused_configs = true
-strict_optional = true
-ignore_missing_imports = true
-packages = ["histo_omics_lite"]
+[tool.setuptools.package-data]
+histo_omics_lite = ["py.typed"]
 
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/histo_omics_lite",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-report=html",
+    "--cov-fail-under=90",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+
+# Ruff configuration
 [tool.ruff]
+target-version = "py310"
 line-length = 100
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "N"]
-ignore = ["E203", "E501"]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "N",  # pep8-naming
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
 
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-line-ending = "lf"
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["S101"]  # allow assert in tests
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-ra"
-filterwarnings = [
-  "ignore::UserWarning",
+[tool.ruff.lint.isort]
+known-first-party = ["histo_omics_lite"]
+force-sort-within-sections = true
+
+# MyPy configuration
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+implicit_reexport = false
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "pytorch_lightning.*",
+    "hydra.*",
+    "omegaconf.*",
+    "matplotlib.*",
+    "seaborn.*",
+]
+ignore_missing_imports = true
+
+# Bandit configuration
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101", "B601"]
+
+[tool.bandit.assert_used]
+exclude = ["*test*.py"]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "tests/*",
+    "src/histo_omics_lite/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]

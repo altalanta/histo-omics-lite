@@ -1,5 +1,7 @@
+# Main configuration file
 defaults:
-  - data: default
-  - model: default
-  - train: default
+  - train: base
   - _self_
+
+# Override defaults here if needed
+# This file serves as the entry point for Hydra configuration

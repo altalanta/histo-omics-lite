@@ -1,0 +1,61 @@
+# Synthetic data configuration
+_target_: histo_omics_lite.data.datamodule.HistoOmicsDataModule
+
+# Data paths
+data_dir: "${oc.env:DATA_DIR,data/synthetic}"
+cache_dir: "${oc.env:CACHE_DIR,${data_dir}/.cache}"
+
+# Dataset parameters
+num_samples: 1000
+train_split: 0.7
+val_split: 0.15
+test_split: 0.15
+
+# Data generation parameters
+histology:
+  image_size: [224, 224]
+  num_channels: 3
+  patch_size: 16
+  num_patches_per_sample: 64
+  
+omics:
+  num_genes: 2000
+  num_pathways: 50
+  noise_level: 0.1
+  
+alignment:
+  correlation_strength: 0.6
+  num_aligned_features: 100
+
+# DataLoader parameters
+batch_size: 32
+num_workers: 4
+pin_memory: true
+persistent_workers: false
+drop_last: false
+
+# Data augmentation
+augmentation:
+  enabled: true
+  histology:
+    horizontal_flip: 0.5
+    vertical_flip: 0.5
+    rotation: 15
+    color_jitter:
+      brightness: 0.1
+      contrast: 0.1
+      saturation: 0.1
+      hue: 0.05
+  omics:
+    noise_std: 0.05
+    dropout_rate: 0.1
+
+# Preprocessing
+preprocessing:
+  histology:
+    normalize: true
+    mean: [0.485, 0.456, 0.406]  # ImageNet stats
+    std: [0.229, 0.224, 0.225]
+  omics:
+    log_transform: true
+    standardize: true
