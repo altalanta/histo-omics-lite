@@ -1,0 +1,79 @@
+# Base training configuration - shared defaults
+defaults:
+  - /data: synthetic
+  - /model: alignment_net
+  - _self_
+
+# Hydra configuration
+hydra:
+  job:
+    chdir: true
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+
+# Experiment tracking
+experiment:
+  name: "histo-omics-alignment"
+  version: null
+  tags: []
+  notes: ""
+
+# Paths
+paths:
+  data_dir: "${oc.env:DATA_DIR,data}"
+  log_dir: "${oc.env:LOG_DIR,logs}"
+  output_dir: "${oc.env:OUTPUT_DIR,outputs}"
+
+# Reproducibility
+seed: 42
+deterministic: true
+
+# Training defaults
+trainer:
+  _target_: pytorch_lightning.Trainer
+  default_root_dir: ${paths.output_dir}
+  min_epochs: 1
+  max_epochs: 10
+  accelerator: auto
+  devices: auto
+  check_val_every_n_epoch: 1
+  deterministic: ${deterministic}
+  
+# Callbacks
+callbacks:
+  model_checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: "epoch_{epoch:03d}"
+    monitor: "val_loss"
+    mode: "min"
+    save_top_k: 1
+    save_last: true
+    verbose: true
+    auto_insert_metric_name: false
+    
+  early_stopping:
+    _target_: pytorch_lightning.callbacks.EarlyStopping
+    monitor: "val_loss"
+    mode: "min"
+    patience: 5
+    min_delta: 0.001
+    verbose: true
+    
+  progress_bar:
+    _target_: pytorch_lightning.callbacks.RichProgressBar
+    refresh_rate: 1
+    
+  lr_monitor:
+    _target_: pytorch_lightning.callbacks.LearningRateMonitor
+    logging_interval: "step"
+
+# Logger
+logger:
+  _target_: pytorch_lightning.loggers.CSVLogger
+  save_dir: ${paths.log_dir}
+  name: ${experiment.name}
+  version: ${experiment.version}
+  
+# Compile
+compile: false

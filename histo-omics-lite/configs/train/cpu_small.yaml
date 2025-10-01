@@ -1,0 +1,50 @@
+# CPU small profile - small-scale CPU training
+defaults:
+  - base
+  - _self_
+
+# Training config for CPU small run
+trainer:
+  max_epochs: 3
+  accelerator: cpu
+  devices: 1
+  log_every_n_steps: 10
+  val_check_interval: 1.0
+  check_val_every_n_epoch: 1
+
+# Data config
+data:
+  batch_size: 16
+  num_workers: 2
+  persistent_workers: true
+
+# Model config
+model:
+  learning_rate: 5e-4
+  weight_decay: 1e-4
+
+# Logging config
+logger:
+  name: "cpu_small"
+  project: "histo-omics-lite"
+  log_model: true
+  
+# Optimization
+optimizer:
+  lr: 5e-4
+  weight_decay: 1e-4
+
+# Early stopping
+early_stopping:
+  enabled: true
+  monitor: "val_loss"
+  patience: 2
+  mode: "min"
+  min_delta: 0.001
+
+# Checkpointing
+checkpoint:
+  save_top_k: 2
+  monitor: "val_loss"
+  mode: "min"
+  save_last: true

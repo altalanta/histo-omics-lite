@@ -1,1 +1,1 @@
-"""Submodule."""
+"""Utility modules for histo-omics-lite."""

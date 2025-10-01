@@ -1,14 +1,47 @@
+# Fast debug profile - minimal setup for quick testing
 defaults:
-  - default
+  - base
+  - _self_
 
-simclr:
-  trainer:
-    max_epochs: 1
-    limit_train_batches: 4
-    limit_val_batches: 2
+# Training config for fast debugging
+trainer:
+  max_epochs: 1
+  limit_train_batches: 10
+  limit_val_batches: 5
+  limit_test_batches: 5
+  accelerator: cpu
+  devices: 1
+  fast_dev_run: false
+  log_every_n_steps: 1
 
-clip:
-  trainer:
-    max_epochs: 1
-    limit_train_batches: 4
-    limit_val_batches: 2
+# Data config
+data:
+  batch_size: 8
+  num_workers: 0  # CPU only, avoid multiprocessing issues
+  persistent_workers: false
+
+# Model config
+model:
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+
+# Logging config
+logger:
+  name: "fast_debug"
+  project: "histo-omics-lite"
+  log_model: false
+  
+# Optimization
+optimizer:
+  lr: 1e-3
+  weight_decay: 1e-4
+
+# Early stopping (disabled for debug)
+early_stopping:
+  enabled: false
+
+# Checkpointing
+checkpoint:
+  save_top_k: 1
+  monitor: "val_loss"
+  mode: "min"
