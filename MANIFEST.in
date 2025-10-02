@@ -1,0 +1,10 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+recursive-include src/histo_omics_lite *.py
+include src/histo_omics_lite/py.typed
+recursive-include configs *.yaml *.yml
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude .DS_Store
