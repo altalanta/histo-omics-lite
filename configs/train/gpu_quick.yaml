@@ -1,27 +1,56 @@
-# defaults:
-#   - base_config
+# GPU quick profile - fast GPU training when available
+defaults:
+  - base
+  - _self_
 
-seed: 42
-temperature: 0.07
-omics_input_dim: 50
-output_dir: artifacts
-
-data:
-  root: data/synthetic
-  batch_size: 64
-  num_workers: 4
-  val_fraction: 0.25
-  use_webdataset: false
-
-optimizer:
-  lr: 0.002
-  weight_decay: 0.01
-
+# Training config for GPU quick run
 trainer:
   max_epochs: 5
-  accelerator: auto  # Will use GPU if available
-  devices: 1
-  precision: 16-mixed  # Use mixed precision if GPU available
-  limit_train_batches: null
-  limit_val_batches: null
+  accelerator: auto  # Will use GPU if available, fallback to CPU
+  devices: auto
+  precision: 16-mixed  # Use mixed precision for faster training
+  log_every_n_steps: 20
+  val_check_interval: 0.5
   check_val_every_n_epoch: 1
+
+# Data config
+data:
+  batch_size: 32
+  num_workers: 4
+  persistent_workers: true
+  pin_memory: true  # For GPU training
+
+# Model config
+model:
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+
+# Logging config
+logger:
+  name: "gpu_quick"
+  project: "histo-omics-lite"
+  log_model: true
+  
+# Optimization
+optimizer:
+  lr: 1e-3
+  weight_decay: 1e-4
+
+# Early stopping
+early_stopping:
+  enabled: true
+  monitor: "val_loss"
+  patience: 3
+  mode: "min"
+  min_delta: 0.001
+
+# Checkpointing
+checkpoint:
+  save_top_k: 3
+  monitor: "val_loss"
+  mode: "min"
+  save_last: true
+  
+# GPU-specific optimizations
+compile:
+  enabled: true  # Use torch.compile if available

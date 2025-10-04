@@ -1,28 +1,47 @@
-# Fast debug configuration - CPU only, 1 epoch
-# defaults:
-#   - base_config
+# Fast debug profile - minimal setup for quick testing
+defaults:
+  - base
+  - _self_
 
-seed: 42
-temperature: 0.07
-omics_input_dim: 50
-output_dir: artifacts
-
-data:
-  root: data/synthetic
-  batch_size: 16
-  num_workers: 0
-  val_fraction: 0.25
-  use_webdataset: false
-
-optimizer:
-  lr: 0.001
-  weight_decay: 0.0
-
+# Training config for fast debugging
 trainer:
   max_epochs: 1
+  limit_train_batches: 10
+  limit_val_batches: 5
+  limit_test_batches: 5
   accelerator: cpu
   devices: 1
-  limit_train_batches: null
-  limit_val_batches: null
-  check_val_every_n_epoch: 1
-  deterministic: true
+  fast_dev_run: false
+  log_every_n_steps: 1
+
+# Data config
+data:
+  batch_size: 8
+  num_workers: 0  # CPU only, avoid multiprocessing issues
+  persistent_workers: false
+
+# Model config
+model:
+  learning_rate: 1e-3
+  weight_decay: 1e-4
+
+# Logging config
+logger:
+  name: "fast_debug"
+  project: "histo-omics-lite"
+  log_model: false
+  
+# Optimization
+optimizer:
+  lr: 1e-3
+  weight_decay: 1e-4
+
+# Early stopping (disabled for debug)
+early_stopping:
+  enabled: false
+
+# Checkpointing
+checkpoint:
+  save_top_k: 1
+  monitor: "val_loss"
+  mode: "min"

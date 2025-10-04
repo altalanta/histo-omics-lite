@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "description": "Demo dataset for histo-omics-lite",
+  "created_at": "2025-10-04 16:20:13 UTC",
+  "files": {
+    "images": [
+      [
+        "tile_001.png",
+        "6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0"
+      ],
+      [
+        "tile_002.png",
+        "6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0"
+      ],
+      [
+        "tile_003.png",
+        "6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0"
+      ]
+    ],
+    "omics": [
+      [
+        "expression_matrix.csv",
+        "194041cc9082e7a450b8d9c50128ad7426764aa5933350b54f81ea6723619154"
+      ]
+    ],
+    "clinical": [
+      [
+        "labels.csv",
+        "72b9e992458b56cc69920242b04520d2d98b5b3a00692b47e39b21e60c9b2822"
+      ]
+    ]
+  }
+}

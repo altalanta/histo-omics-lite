@@ -1,0 +1,2 @@
+[console_scripts]
+histo-omics-lite = histo_omics_lite.cli:app

@@ -1,0 +1,4 @@
+patient_id,gene_A,gene_B,gene_C,gene_D,gene_E
+patient_001,2.3,1.8,0.5,3.2,1.1
+patient_002,1.9,2.1,0.8,2.8,1.4
+patient_003,2.1,1.7,0.6,3.0,1.2
