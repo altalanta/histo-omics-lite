@@ -1,223 +1,281 @@
-# histo-omics-lite
+# Histo-Omics-Lite
 
-[![CI](https://github.com/altalanta/histo-omics-lite/workflows/CI/badge.svg)](https://github.com/altalanta/histo-omics-lite/actions)
-[![Coverage](https://codecov.io/gh/altalanta/histo-omics-lite/branch/main/graph/badge.svg)](https://codecov.io/gh/altalanta/histo-omics-lite)
-[![Docs](https://img.shields.io/badge/docs-available-brightgreen.svg)](https://altalanta.github.io/histo-omics-lite)
-[![Release](https://img.shields.io/github/v/release/altalanta/histo-omics-lite)](https://github.com/altalanta/histo-omics-lite/releases)
-[![Reproducible Run](https://img.shields.io/badge/reproducible-run-blue.svg)](https://altalanta.github.io/histo-omics-lite)
+[![CI](https://github.com/altalanta/histo-omics-lite/actions/workflows/ci.yml/badge.svg)](https://github.com/altalanta/histo-omics-lite/actions/workflows/ci.yml)
+[![Release](https://github.com/altalanta/histo-omics-lite/actions/workflows/release.yml/badge.svg)](https://github.com/altalanta/histo-omics-lite/actions/workflows/release.yml)
+[![PyPI version](https://badge.fury.io/py/histo-omics-lite.svg)](https://badge.fury.io/py/histo-omics-lite)
+[![Docker](https://ghcr-badge.egpl.dev/altalanta/histo-omics-lite/latest_tag?trim=major)](https://github.com/altalanta/histo-omics-lite/pkgs/container/histo-omics-lite)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://mypy-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**A polished, reproducible mini-benchmark for histology ⇄ omics alignment that runs end-to-end on CPU in <10 minutes and demonstrates ML excellence.**
+**Lightweight histology×omics alignment with a tiny, CPU-only pipeline.**
 
-This PyTorch Lightning project provides a complete benchmark suite for multimodal learning between histology images and omics data, featuring baseline models, bootstrap confidence intervals, comprehensive evaluation, and automated report generation.
+Histo-Omics-Lite is a production-ready Python package for aligning histological images with omics data using modern deep learning techniques. Built with simplicity and reproducibility in mind, it provides a clean CLI interface and deterministic training for reliable research workflows.
 
 ## ✨ Key Features
 
-- 🎯 **5 Baseline Models**: Image-only, omics-only, early fusion, late fusion, and CLIP alignment
-- 📊 **Bootstrap Confidence Intervals**: 95% CIs for AUROC/AUPRC from 1000 bootstrap samples  
-- 🔬 **Comprehensive Evaluation**: Calibration curves, UMAP embeddings, Grad-CAM visualizations
-- 📈 **MLflow Integration**: Complete experiment tracking with artifacts and metrics
-- 📋 **Automated Reports**: Static HTML reports with embedded plots and metrics tables
-- 🧪 **CI/CD Pipeline**: GitHub Actions with smoke tests, coverage gating ≥85%, and Docker builds
-- 🐳 **Docker Support**: CPU-optimized container for reproducible deployments
-- 📦 **Package Distribution**: Wheels with CPU/dev extras for easy installation
+- **🚀 Simple & Fast**: CPU-optimized pipeline that runs anywhere
+- **🔬 Multi-modal**: Align histology images with omics data using contrastive learning
+- **🎯 Deterministic**: Reproducible results with comprehensive seed control
+- **📦 Production Ready**: Clean CLI, proper packaging, and thorough testing
+- **📊 Comprehensive Evaluation**: Built-in metrics with bootstrap confidence intervals
+- **⚙️ Configurable**: Hydra-based configuration with multiple training profiles
+- **📚 Well Documented**: Complete documentation with MkDocs Material
 
-## 🚀 Quickstart
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-# Setup (choose one)
-make setup          # Full dev environment
-make setup-cpu      # CPU-only with MLflow, Jinja2, UMAP
-
-# Run complete benchmark
-make demo           # Public demo dataset + full pipeline + report
-open docs/index.html  # View generated report
-
-# Or run with synthetic data
-make demo-synthetic
+pip install histo-omics-lite
 ```
 
-The complete pipeline (fetch → train → eval → report) completes in **≤10 minutes** and generates a comprehensive HTML report with benchmark results, visualizations, and reproducibility information.
+### Basic Usage
 
-## 📊 Benchmark Results
-
-Performance on public demo dataset (100 samples, 2 classes, 30 genes):
-
-| Model | AUROC | AUPRC | ECE | Status |
-|-------|-------|-------|-----|--------|
-| **CLIP Alignment** | 0.850 (0.820-0.880) | 0.764 (0.720-0.808) | 0.045 | ✅ Excellent |
-| **Late Fusion** | 0.835 (0.800-0.870) | 0.748 (0.700-0.796) | 0.052 | ✅ Excellent |
-| **Early Fusion** | 0.812 (0.775-0.849) | 0.725 (0.675-0.775) | 0.063 | 🔵 Good |
-| **Image Linear Probe** | 0.745 (0.700-0.790) | 0.680 (0.625-0.735) | 0.089 | 🔵 Good |
-| **Omics MLP** | 0.720 (0.675-0.765) | 0.655 (0.600-0.710) | 0.095 | 🔵 Good |
-
-*Bootstrap 95% confidence intervals from 1000 samples. ECE = Expected Calibration Error.*
-
-## 🏗️ Architecture Overview
-
-```
-src/histo_omics_lite/
-├── data/
-│   ├── adapters/        # Public demo dataset (synthetic tiles + omics)
-│   ├── loader.py        # PyTorch Dataset with WebDataset support
-│   └── synthetic.py     # Synthetic data generation
-├── models/
-│   ├── clip.py          # InfoNCE contrastive learning
-│   ├── vision.py        # ResNet18 image encoder
-│   ├── omics.py         # MLP omics encoder  
-│   ├── image_linear_probe.py    # Frozen encoder + linear head
-│   ├── omics_mlp.py             # Omics-only classifier
-│   ├── fusion_early.py          # Concatenated features
-│   └── fusion_late.py           # Combined predictions
-├── evaluation/
-│   ├── bootstrap.py     # Bootstrap confidence intervals
-│   ├── calibration.py   # Reliability curves, ECE computation
-│   └── retrieval.py     # Cross-modal retrieval metrics
-├── visualization/
-│   ├── umap.py          # UMAP embeddings with deterministic seeding
-│   └── gradcam.py       # Grad-CAM for ResNet18 attention
-├── tracking/
-│   └── mlflow_logger.py # MLflow experiment tracking
-├── report/
-│   ├── make_report.py   # Jinja2 report generator
-│   └── templates/       # HTML templates with embedded CSS
-└── training/
-    └── train.py         # Lightning trainer with Hydra configs
-```
-
-## 🔧 Advanced Usage
-
-### Custom Datasets
 ```bash
-# Prepare your own public demo dataset
-python scripts/fetch_public_demo.py --n-samples 500 --tile-size 128
+# Generate synthetic data
+histo-omics-lite data --make --num-samples 1000
 
-# Run with custom configuration
-python scripts/run_end_to_end.py \
-  --dataset public_demo \
-  --models clip early_fusion late_fusion \
-  --output-dir results/custom
+# Train with fast debug profile (1 epoch, CPU)
+histo-omics-lite train --config configs/train/fast_debug.yaml
+
+# Train with small CPU profile (3 epochs)
+histo-omics-lite train --config configs/train/cpu_small.yaml
+
+# Evaluate with confidence intervals
+histo-omics-lite eval --ckpt path/to/checkpoint.ckpt --ci
+
+# Generate embeddings
+histo-omics-lite embed --ckpt path/to/checkpoint.ckpt --out embeddings.parquet
 ```
 
-### Individual Components
+### Python API
+
 ```python
-from histo_omics_lite.evaluation import bootstrap_confidence_intervals
-from histo_omics_lite.models import EarlyFusionModel
-from histo_omics_lite.tracking import setup_mlflow_tracking
+from histo_omics_lite import set_determinism, evaluate_model
 
-# Bootstrap metrics with confidence intervals
-results = bootstrap_confidence_intervals(y_true, y_pred, n_bootstrap=1000)
+# Ensure reproducible results
+set_determinism(seed=42)
 
-# Train custom fusion model
-model = EarlyFusionModel(omics_input_dim=50, num_classes=3)
+# Evaluate a trained model
+results = evaluate_model(
+    checkpoint_path="model.ckpt",
+    compute_ci=True,
+    seed=42
+)
 
-# Track experiments
-with setup_mlflow_tracking("my-experiment") as logger:
-    logger.log_metrics({"auroc": 0.85})
+print(f"Top-1 Accuracy: {results['metrics']['retrieval']['top1_histo_to_omics']:.3f}")
 ```
 
-### Docker Deployment
-```bash
-# Build and run CPU container
-docker build -f Dockerfile.cpu -t histo-omics-lite .
-docker run --rm histo-omics-lite make smoke
+## 🎯 Public Demo
 
-# Or pull from GitHub Container Registry
-docker run --rm ghcr.io/altalanta/histo-omics-lite:latest
-```
-
-## 🧪 Development & Testing
+Try the package with a ready-to-use public dataset:
 
 ```bash
-# Code quality
-make lint           # Ruff linting
-make format         # Code formatting  
-make type           # MyPy type checking
-make test           # Full test suite with coverage
+# Fetch public demo dataset (histology images + omics data)
+histo-omics-lite fetch-public
 
-# Smoke tests (60-90s CPU end-to-end)
-make smoke          # Fast synthetic data pipeline
-make test-smoke     # Pytest smoke test suite
+# Run complete demo pipeline
+make demo-public
 
-# Build distribution
-make build          # Source dist + wheel
-pip install dist/*.whl[cpu]  # Install wheel with CPU extras
+# Or run individual steps
+histo-omics-lite train --config configs/train/fast_debug.yaml --data-path data/public --epochs 2
+histo-omics-lite eval --ckpt artifacts/checkpoints/best.ckpt --data-path data/public
+histo-omics-lite report --results-dir results
 ```
 
-## 📋 CI/CD Pipeline
+### Docker Demo
 
-The GitHub Actions workflow provides:
+```bash
+# Pull the latest image
+docker pull ghcr.io/altalanta/histo-omics-lite:latest
 
-- ✅ **Lint & Type Check**: Ruff + MyPy on all Python code
-- 🧪 **Test Suite**: Pytest with coverage gating ≥85%  
-- 🔥 **Smoke Tests**: End-to-end pipeline validation
-- 🐳 **Docker Build**: Multi-stage CPU container
-- 📦 **Package Build**: Source dist + wheel artifacts
-- 📚 **Documentation**: Auto-deploy to GitHub Pages
+# Run the demo
+docker run --rm -v $(pwd)/demo_results:/app/results ghcr.io/altalanta/histo-omics-lite:latest \
+  fetch-public --verify-only
 
-Smoke tests validate:
-- Pipeline completes in <10 minutes
-- AUROC ≥ 0.6 on synthetic data  
-- Calibration ECE < 0.2
-- All artifacts generated successfully
+# Interactive shell
+docker run --rm -it ghcr.io/altalanta/histo-omics-lite:latest bash
+```
 
-## 🎯 Quality Standards
+The public dataset includes:
+- **Histology tiles**: 3 sample PNG images (1x1 pixel demo tiles)
+- **Omics data**: Expression matrix with 5 genes across 3 patients
+- **Clinical labels**: Basic outcome and treatment information
+- **Data integrity**: SHA256 checksums for all files
 
-- **Reproducibility**: Fixed seeds, deterministic UMAP, identical artifacts across runs
-- **Performance**: <10 minute CPU runtime, <100MB dataset size
-- **Code Quality**: Ruff formatting, MyPy types, 85%+ test coverage
-- **Documentation**: Comprehensive README, model cards, dataset sheets
-- **CI/CD**: Green builds, automated testing, containerized deployment
+## 📋 Requirements
+
+- **Python**: 3.10, 3.11, or 3.12
+- **Memory**: 8GB+ RAM recommended
+- **GPU**: Optional (CUDA-capable GPU recommended for larger datasets)
+
+## 🏗️ Architecture
+
+Histo-Omics-Lite implements a contrastive learning approach for cross-modal alignment:
+
+- **Histology Encoder**: ResNet-based feature extraction from histological images
+- **Omics Encoder**: MLP-based processing of high-dimensional omics data
+- **Alignment Head**: Contrastive learning with InfoNCE loss for cross-modal alignment
+- **Evaluation Suite**: Comprehensive metrics including retrieval accuracy, classification performance, and calibration
+
+## 📊 Evaluation Metrics
+
+The package provides comprehensive evaluation with:
+
+### Retrieval Metrics
+- **Top-k Accuracy**: Cross-modal retrieval at different k values
+- **Mean Reciprocal Rank (MRR)**: Average reciprocal rank across queries
+- **Precision@K**: Precision at different retrieval cutoffs
+
+### Classification Metrics  
+- **AUROC/AUPRC**: Area under ROC and Precision-Recall curves
+- **F1 Score**: Harmonic mean of precision and recall
+- **Accuracy**: Overall classification accuracy
+
+### Calibration Metrics
+- **Expected Calibration Error (ECE)**: Reliability of confidence estimates
+- **Maximum Calibration Error (MCE)**: Worst-case calibration error
+- **Brier Score**: Proper scoring rule for probabilistic predictions
+
+### Confidence Intervals
+- **Bootstrap Sampling**: Non-parametric confidence intervals
+- **Configurable Levels**: 90%, 95%, 99% confidence levels supported
+- **Multiple Metrics**: CIs computed for all evaluation metrics
+
+## ⚙️ Configuration Profiles
+
+Pre-configured training profiles for different use cases:
+
+| Profile | Description | Epochs | Device | Use Case |
+|---------|-------------|--------|--------|----------|
+| `fast_debug` | Quick testing | 1 | CPU | Development & debugging |
+| `cpu_small` | Small-scale training | 3 | CPU | Small datasets, CPU-only |
+| `gpu_quick` | GPU acceleration | 5 | GPU/CPU | Larger datasets, faster training |
+
+## 🔬 Determinism Guarantees
+
+Histo-Omics-Lite ensures reproducible results through:
+
+- **Comprehensive Seed Control**: All RNGs (Python, NumPy, PyTorch, Lightning)
+- **Deterministic Algorithms**: PyTorch deterministic operations enabled
+- **Environment Variables**: PYTHONHASHSEED, CUBLAS_WORKSPACE_CONFIG
+- **Validation Tools**: Built-in determinism checking and reporting
+
+```bash
+# Check current determinism status
+histo-omics-lite --deterministic
+```
+
+## 🛠️ Development
+
+### Setup Development Environment
+
+```bash
+git clone https://github.com/altalanta/histo-omics-lite.git
+cd histo-omics-lite
+pip install -e ".[dev]"
+pre-commit install
+```
+
+### Run Quality Checks
+
+```bash
+# All quality checks
+make quality
+
+# Individual checks
+make lint          # Ruff linting
+make format        # Code formatting
+make typecheck     # MyPy type checking
+make test          # Pytest with coverage
+```
+
+### Build Documentation
+
+```bash
+make docs-serve    # Serve locally at http://localhost:8000
+make docs          # Build static site
+```
 
 ## 📚 Documentation
 
-- 📖 **[Model Card](MODEL_CARD.md)**: Architecture details, intended use, limitations
-- 📊 **[Dataset Sheet](DATASET_SHEET.md)**: Data composition, synthetic generation process  
-- 🔬 **[Release Notes](RELEASE_NOTES.md)**: Version history and changes
-- 🌐 **[Live Demo](https://altalanta.github.io/histo-omics-lite)**: Interactive results dashboard
+Comprehensive documentation is available at: [https://altalanta.github.io/histo-omics-lite/](https://altalanta.github.io/histo-omics-lite/)
 
-## 📦 Installation Options
-
-```bash
-# Minimal installation
-pip install histo-omics-lite
-
-# With CPU extras (MLflow, Jinja2, UMAP)  
-pip install histo-omics-lite[cpu]
-
-# Development installation
-pip install histo-omics-lite[dev]
-
-# From source
-git clone https://github.com/altalanta/histo-omics-lite
-cd histo-omics-lite && make setup
-```
+- **Getting Started**: Installation and quickstart guide
+- **CLI Reference**: Complete command-line interface documentation
+- **Concepts**: Understanding the architecture and methodology
+- **Advanced Topics**: Determinism, custom configurations, and extensions
+- **API Reference**: Complete Python API documentation
 
 ## 🤝 Contributing
 
-We welcome contributions! Please:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes and add tests
-4. Ensure all checks pass (`make lint test smoke`)
-5. Submit a pull request
+### Quick Contributing Steps
+
+1. **Fork** the repository
+2. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **Make** your changes with tests
+4. **Run** quality checks: `make quality`
+5. **Commit** your changes: `git commit -m 'Add amazing feature'`
+6. **Push** to your branch: `git push origin feature/amazing-feature`
+7. **Submit** a Pull Request
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Citation
+## 🎯 Use Cases
+
+### Research Applications
+- **Multi-modal Analysis**: Joint analysis of histological and molecular data
+- **Biomarker Discovery**: Identify correlations between tissue morphology and gene expression
+- **Disease Classification**: Integrate imaging and omics for improved diagnostics
+- **Drug Discovery**: Understand tissue-level drug effects across modalities
+
+### Clinical Applications  
+- **Precision Medicine**: Personalized treatment based on multi-modal patient data
+- **Diagnostic Support**: Enhanced diagnostic accuracy through data integration
+- **Prognostic Modeling**: Improved patient outcome prediction
+- **Treatment Planning**: Optimize therapy selection using comprehensive patient profiles
+
+### Educational Applications
+- **Learning Multi-modal ML**: Hands-on experience with cross-modal alignment
+- **Research Methods**: Best practices for reproducible ML research
+- **Benchmarking**: Standard evaluation procedures for multi-modal systems
+- **Methodology Comparison**: Compare different alignment approaches
+
+## 🔍 Citation
+
+If you use Histo-Omics-Lite in your research, please cite:
 
 ```bibtex
 @software{histo_omics_lite,
-  title={histo-omics-lite: A reproducible benchmark for histology-omics alignment},
-  author={Altalanta Engineering Team},
+  title={Histo-Omics-Lite: Lightweight Histology×Omics Alignment},
+  author={Altalanta Team},
   url={https://github.com/altalanta/histo-omics-lite},
-  version={0.1.0},
-  year={2024}
+  year={2024},
+  version={0.1.0}
 }
 ```
 
+## 🆘 Support
+
+- **Issues**: [GitHub Issues](https://github.com/altalanta/histo-omics-lite/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/altalanta/histo-omics-lite/discussions)
+- **Documentation**: [https://altalanta.github.io/histo-omics-lite/](https://altalanta.github.io/histo-omics-lite/)
+
+## 🏷️ Version History
+
+- **v0.1.0** (2024-01-XX): Initial release with core functionality
+  - Multi-modal alignment with contrastive learning
+  - Comprehensive evaluation suite with confidence intervals
+  - Production-ready CLI and Python API
+  - Full determinism guarantees and reproducibility tools
+  - Complete documentation and testing coverage
+
 ---
 
-**Built with ❤️ by [Altalanta](https://altalanta.ai) | [🐛 Report Issues](https://github.com/altalanta/histo-omics-lite/issues) | [💬 Discussions](https://github.com/altalanta/histo-omics-lite/discussions)**
+Built with ❤️ by the [Altalanta](https://altalanta.ai) team.

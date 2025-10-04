@@ -1,46 +1,40 @@
-site_name: histo-omics-lite
+site_name: Histo-Omics-Lite
 site_description: Lightweight histology×omics alignment with a tiny, CPU-only pipeline
+site_author: Histo-Omics-Lite Team
 site_url: https://altalanta.github.io/histo-omics-lite
-repo_url: https://github.com/altalanta/histo-omics-lite
+
 repo_name: altalanta/histo-omics-lite
+repo_url: https://github.com/altalanta/histo-omics-lite
+edit_uri: edit/main/docs/
 
 theme:
   name: material
   palette:
-    - scheme: default
-      primary: blue
-      accent: blue
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    - scheme: slate
-      primary: blue
-      accent: blue
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
     - navigation.expand
+    - navigation.path
     - navigation.top
     - search.highlight
-    - search.share
+    - search.suggest
     - content.code.copy
-
-markdown_extensions:
-  - admonition
-  - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.tabbed:
-      alternate_style: true
-  - tables
-  - toc:
-      permalink: true
+    - content.code.annotate
 
 plugins:
   - search
@@ -48,23 +42,68 @@ plugins:
       handlers:
         python:
           options:
+            docstring_style: google
             show_source: true
             show_root_heading: true
-            show_root_toc_entry: false
-            docstring_style: google
+  - autorefs
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
 
 nav:
   - Home: index.md
-  - Quickstart: quickstart.md
-  - Concepts: concepts.md
-  - Determinism: determinism.md
-  - API Reference: api.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quickstart: getting-started/quickstart.md
+    - Public Demo: getting-started/public-demo.md
+    - CLI Reference: getting-started/cli.md
+  - Concepts:
+    - Overview: concepts/overview.md
+    - Data Pipeline: concepts/data.md
+    - Model Architecture: concepts/model.md
+    - Evaluation: concepts/evaluation.md
+  - Advanced:
+    - Determinism: advanced/determinism.md
+    - Configuration: advanced/configuration.md
+    - Custom Models: advanced/custom-models.md
+  - API Reference:
+    - Core: api/core.md
+    - Data: api/data.md
+    - Models: api/models.md
+    - Training: api/training.md
+    - Evaluation: api/evaluation.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Release Process: development/release.md
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/altalanta/histo-omics-lite
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/histo-omics-lite
+      link: https://pypi.org/project/histo-omics-lite/
+    - icon: fontawesome/brands/docker
+      link: https://github.com/altalanta/histo-omics-lite/pkgs/container/histo-omics-lite
 
-copyright: Copyright &copy; 2024 Altalanta
+copyright: Copyright &copy; 2024 Histo-Omics-Lite Team
