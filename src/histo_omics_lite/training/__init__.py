@@ -1,5 +1,7 @@
+"""Training interfaces for histo-omics-lite."""
+
 from __future__ import annotations
 
-from .train import HistoOmicsModule, TrainConfig, main, run_training
+from histo_omics_lite.training.trainer import train_model
 
-__all__ = ["HistoOmicsModule", "TrainConfig", "main", "run_training"]
+__all__ = ["train_model"]
