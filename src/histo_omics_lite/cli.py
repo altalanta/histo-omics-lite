@@ -1,257 +1,228 @@
+"""Command-line interface for histo-omics-lite."""
+
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
+import time
 from pathlib import Path
+from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from histo_omics_lite import __version__, set_determinism
+from histo_omics_lite import __version__
+from histo_omics_lite.data.synthetic import create_synthetic_data
+from histo_omics_lite.training.trainer import train_model
+from histo_omics_lite.evaluation.evaluator import evaluate_model
+from histo_omics_lite.inference.embeddings import generate_embeddings
 
-app = typer.Typer(
-    name="histo-omics-lite",
-    help="Lightweight histology×omics alignment with a tiny, CPU-only pipeline",
-    add_completion=False,
-)
+app = typer.Typer(name="histo-omics-lite", help="Lightweight histology x omics pipeline", rich_markup_mode="rich")
 console = Console()
 
 
-def version_callback(value: bool) -> None:
-    """Print version and exit."""
-    if value:
-        console.print(f"histo-omics-lite {__version__}")
-        raise typer.Exit()
+def _print_json(payload: dict[str, object], json_output: bool) -> None:
+    if json_output:
+        json.dump(payload, sys.stdout, indent=None, separators=(",", ":"))
+        sys.stdout.write("
+")
+    else:
+        table = Table(show_header=False)
+        for key, value in payload.items():
+            table.add_row(str(key), json.dumps(value, default=str)
+                          if isinstance(value, (dict, list)) else str(value))
+        console.print(table)
+
+
+def _error(message: str, json_output: bool) -> None:
+    if json_output:
+        json.dump({"status": "error", "error": message}, sys.stdout)
+        sys.stdout.write("
+")
+    else:
+        console.print(f"[bold red]Error:[/bold red] {message}")
+
+
+def _resolve_device(cpu: bool, gpu: bool, json_output: bool) -> str:
+    if cpu and gpu:
+        _error("Cannot enable both --cpu and --gpu. Choose one device option.", json_output)
+        raise typer.Exit(1)
+    if gpu:
+        import torch
+
+        if not torch.cuda.is_available():
+            _error("CUDA is not available on this system.", json_output)
+            raise typer.Exit(1)
+        return "cuda"
+    return "cpu"
 
 
 @app.callback()
 def main(
-    version: bool = typer.Option(False, "--version", help="Show version and exit"),
-    deterministic: bool = typer.Option(False, "--deterministic", help="Enable deterministic mode with fixed seed=1337"),
+    version: Optional[bool] = typer.Option(None, "--version", help="Show version and exit"),
 ) -> None:
-    """Main CLI entry point."""
     if version:
         console.print(f"histo-omics-lite {__version__}")
         raise typer.Exit()
-    
-    if deterministic:
-        seed = 1337
-        set_determinism(seed)
-        console.print(f"[bold green]Deterministic mode enabled[/bold green] (seed={seed})")
 
 
 @app.command()
 def data(
+    make: bool = typer.Option(False, "--make", help="Generate synthetic dataset"),
     out: Path = typer.Option(Path("data/synthetic"), "--out", help="Output directory"),
-    seed: int = typer.Option(42, "--seed", help="Random seed"),
-    json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    seed: int = typer.Option(42, "--seed", help="Generation seed"),
+    num_patients: int = typer.Option(200, "--num-patients", help="Number of patients"),
+    tiles_per_patient: int = typer.Option(4, "--tiles-per-patient", help="Tiles per patient"),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON"),
 ) -> None:
-    """Generate synthetic dataset."""
-    if "--deterministic" in sys.argv:
-        seed = 1337
-    
-    set_determinism(seed)
-    
-    try:
-        from histo_omics_lite.data.synthetic import make_tiny
-        
-        make_tiny(str(out))
-        
-        if json_output:
-            result = {
-                "status": "success",
-                "output_dir": str(out.absolute()),
-                "seed": seed,
-            }
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold green]✓[/bold green] Synthetic dataset created at {out}")
-            
-    except Exception as e:
-        if json_output:
-            result = {"status": "error", "error": str(e)}
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold red]✗[/bold red] Failed to create dataset: {e}")
+    if not make:
+        _error("No action specified. Use --make to generate data.", json_output)
         raise typer.Exit(1)
+
+    try:
+        summary = create_synthetic_data(
+            out,
+            num_patients=num_patients,
+            tiles_per_patient=tiles_per_patient,
+            seed=seed,
+        )
+    except Exception as exc:  # pragma: no cover - surfaced via CLI
+        _error(str(exc), json_output)
+        raise typer.Exit(1)
+
+    payload = {
+        "status": "success",
+        "output_dir": str(summary.output_dir),
+        "seed": seed,
+        "split_sizes": summary.split_sizes,
+        "checksums_path": str(summary.checksums_path),
+        "format": summary.features_format,
+        "features_path": str(summary.features_path),
+    }
+    _print_json(payload, json_output)
 
 
 @app.command()
 def train(
-    config: str = typer.Option("fast_debug", "--config", help="Hydra config name"),
-    seed: int = typer.Option(42, "--seed", help="Random seed"),
-    cpu: bool = typer.Option(True, "--cpu/--gpu", help="Force CPU training"),
-    epochs: int = typer.Option(None, "--epochs", help="Number of training epochs"),
-    batch_size: int = typer.Option(None, "--batch-size", help="Batch size"),
-    num_workers: int = typer.Option(0, "--num-workers", help="Number of data workers"),
-    json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    config: Optional[Path] = typer.Option(None, "--config", help="Training config YAML"),
+    seed: int = typer.Option(42, "--seed", help="Training seed"),
+    cpu: bool = typer.Option(False, "--cpu", help="Force CPU execution"),
+    gpu: bool = typer.Option(False, "--gpu", help="Force CUDA execution"),
+    epochs: Optional[int] = typer.Option(None, "--epochs", help="Override epochs"),
+    batch_size: Optional[int] = typer.Option(None, "--batch-size", help="Override batch size"),
+    num_workers: Optional[int] = typer.Option(None, "--num-workers", help="Override dataloader workers"),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON"),
 ) -> None:
-    """Train model with Hydra configuration."""
-    if "--deterministic" in sys.argv:
-        seed = 1337
-    
-    set_determinism(seed)
-    
+    device = _resolve_device(cpu, gpu, json_output)
+
     try:
-        # Import and run training
-        cmd = [
-            sys.executable, "-m", "histo_omics_lite.training.train",
-            f"--config-name={config}",
-        ]
-        
-        # Add overrides
-        overrides = []
-        if epochs is not None:
-            overrides.append(f"trainer.max_epochs={epochs}")
-        if batch_size is not None:
-            overrides.append(f"data.batch_size={batch_size}")
-        if num_workers is not None:
-            overrides.append(f"data.num_workers={num_workers}")
-        if cpu:
-            overrides.append("trainer.accelerator=cpu")
-        
-        if overrides:
-            cmd.extend(overrides)
-        
-        if not json_output:
-            console.print(f"[bold blue]Training with config:[/bold blue] {config}")
-            console.print(f"[dim]Command: {' '.join(cmd)}[/dim]")
-        
-        result = subprocess.run(cmd, capture_output=json_output)
-        
-        if result.returncode == 0:
-            if json_output:
-                output = {
-                    "status": "success",
-                    "config": config,
-                    "seed": seed,
-                    "overrides": overrides,
-                }
-                console.print(json.dumps(output))
-            else:
-                console.print(f"[bold green]✓[/bold green] Training completed successfully")
-        else:
-            if json_output:
-                output = {"status": "error", "error": "Training failed"}
-                console.print(json.dumps(output))
-            else:
-                console.print(f"[bold red]✗[/bold red] Training failed")
-            raise typer.Exit(1)
-            
-    except Exception as e:
-        if json_output:
-            result = {"status": "error", "error": str(e)}
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold red]✗[/bold red] Training failed: {e}")
+        result = train_model(
+            config_path=config,
+            seed=seed,
+            device=device,
+            epochs=epochs,
+            batch_size=batch_size,
+            num_workers=num_workers,
+        )
+    except Exception as exc:  # pragma: no cover - surfaced in tests
+        _error(str(exc), json_output)
         raise typer.Exit(1)
+
+    payload = {
+        "status": "success",
+        "best_checkpoint": result["best_checkpoint"],
+        "metrics": result["metrics"],
+        "seed": seed,
+        "device": result["device"],
+        "runtime_seconds": result["runtime_seconds"],
+    }
+    _print_json(payload, json_output)
 
 
 @app.command()
 def eval(
-    ckpt: Path = typer.Option(..., "--ckpt", help="Path to checkpoint file"),
-    seed: int = typer.Option(42, "--seed", help="Random seed"),
-    json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    ckpt: Path = typer.Option(..., "--ckpt", help="Checkpoint path"),
+    seed: int = typer.Option(42, "--seed", help="Evaluation seed"),
+    cpu: bool = typer.Option(False, "--cpu", help="Force CPU execution"),
+    gpu: bool = typer.Option(False, "--gpu", help="Force CUDA execution"),
+    num_workers: int = typer.Option(0, "--num-workers", help="Dataloader workers"),
+    batch_size: int = typer.Option(128, "--batch-size", help="Evaluation batch size"),
+    data_dir: Optional[Path] = typer.Option(None, "--data-dir", help="Dataset directory"),
+    split: str = typer.Option("test", "--split", help="Dataset split"),
+    ci: bool = typer.Option(False, "--ci", help="Compute bootstrap CIs"),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON"),
 ) -> None:
-    """Evaluate trained checkpoint."""
-    set_determinism(seed)
-    
-    if not ckpt.exists():
-        if json_output:
-            result = {"status": "error", "error": f"Checkpoint not found: {ckpt}"}
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold red]✗[/bold red] Checkpoint not found: {ckpt}")
-        raise typer.Exit(1)
-    
+    device = _resolve_device(cpu, gpu, json_output)
+
     try:
-        # TODO: Implement evaluation logic
-        if json_output:
-            result = {
-                "status": "success",
-                "checkpoint": str(ckpt),
-                "metrics": {
-                    "auroc": 0.85,
-                    "auprc": 0.78,
-                    "top1_accuracy": 0.82,
-                    "top5_accuracy": 0.95,
-                    "ece": 0.045,
-                },
-                "seed": seed,
-            }
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold green]✓[/bold green] Evaluation completed for {ckpt.name}")
-            
-            # Display metrics table
-            table = Table(title="Evaluation Metrics")
-            table.add_column("Metric", style="cyan")
-            table.add_column("Value", style="magenta")
-            
-            table.add_row("AUROC", "0.850")
-            table.add_row("AUPRC", "0.780")
-            table.add_row("Top-1 Accuracy", "0.820")
-            table.add_row("Top-5 Accuracy", "0.950")
-            table.add_row("Calibration ECE", "0.045")
-            
-            console.print(table)
-            
-    except Exception as e:
-        if json_output:
-            result = {"status": "error", "error": str(e)}
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold red]✗[/bold red] Evaluation failed: {e}")
+        result = evaluate_model(
+            checkpoint_path=ckpt,
+            seed=seed,
+            device=device,
+            num_workers=num_workers,
+            batch_size=batch_size,
+            compute_ci=ci,
+            data_dir=data_dir,
+            split=split,
+        )
+    except Exception as exc:  # pragma: no cover
+        _error(str(exc), json_output)
         raise typer.Exit(1)
+
+    payload = {
+        "status": "success",
+        "metrics": result["metrics"],
+        "ci": result.get("ci", {}),
+        "seed": seed,
+        "device": result["device"],
+        "split": split,
+        "runtime_seconds": result.get("runtime_seconds"),
+    }
+    _print_json(payload, json_output)
 
 
 @app.command()
 def embed(
-    ckpt: Path = typer.Option(..., "--ckpt", help="Path to checkpoint file"),
-    out: Path = typer.Option(Path("artifacts/embeddings.parquet"), "--out", help="Output path for embeddings"),
-    seed: int = typer.Option(42, "--seed", help="Random seed"),
-    batch_size: int = typer.Option(16, "--batch-size", help="Batch size"),
-    num_workers: int = typer.Option(0, "--num-workers", help="Number of workers"),
-    json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    ckpt: Path = typer.Option(..., "--ckpt", help="Checkpoint path"),
+    out: Path = typer.Option(Path("artifacts/embeddings.parquet"), "--out", help="Embeddings output"),
+    seed: int = typer.Option(42, "--seed", help="Embedding seed"),
+    cpu: bool = typer.Option(False, "--cpu", help="Force CPU execution"),
+    gpu: bool = typer.Option(False, "--gpu", help="Force CUDA execution"),
+    num_workers: int = typer.Option(0, "--num-workers", help="Dataloader workers"),
+    batch_size: int = typer.Option(128, "--batch-size", help="Batch size"),
+    data_dir: Optional[Path] = typer.Option(None, "--data-dir", help="Dataset directory"),
+    split: str = typer.Option("test", "--split", help="Dataset split"),
+    json_output: bool = typer.Option(False, "--json", help="Emit JSON"),
 ) -> None:
-    """Extract embeddings from trained model."""
-    set_determinism(seed)
-    
-    if not ckpt.exists():
-        if json_output:
-            result = {"status": "error", "error": f"Checkpoint not found: {ckpt}"}
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold red]✗[/bold red] Checkpoint not found: {ckpt}")
-        raise typer.Exit(1)
-    
+    device = _resolve_device(cpu, gpu, json_output)
+
     try:
-        # TODO: Implement embedding extraction to Parquet format
-        out.parent.mkdir(parents=True, exist_ok=True)
-        
-        if json_output:
-            result = {
-                "status": "success",
-                "checkpoint": str(ckpt),
-                "output_path": str(out.absolute()),
-                "num_embeddings": 100,
-                "embedding_dim": 512,
-                "seed": seed,
-            }
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold green]✓[/bold green] Embeddings extracted to {out}")
-            console.print(f"[dim]Format: Parquet | Samples: 100 | Dimensions: 512[/dim]")
-            
-    except Exception as e:
-        if json_output:
-            result = {"status": "error", "error": str(e)}
-            console.print(json.dumps(result))
-        else:
-            console.print(f"[bold red]✗[/bold red] Embedding extraction failed: {e}")
+        result = generate_embeddings(
+            checkpoint_path=ckpt,
+            output_path=out,
+            seed=seed,
+            device=device,
+            num_workers=num_workers,
+            batch_size=batch_size,
+            data_dir=data_dir,
+            split=split,
+        )
+    except Exception as exc:  # pragma: no cover
+        _error(str(exc), json_output)
         raise typer.Exit(1)
+
+    payload = {
+        "status": "success",
+        "output_path": result["output_path"],
+        "num_embeddings": result["num_embeddings"],
+        "embedding_dim": result["embedding_dim"],
+        "format": result["format"],
+        "seed": seed,
+        "device": result["device"],
+        "runtime_seconds": result["runtime_seconds"],
+    }
+    _print_json(payload, json_output)
 
 
 if __name__ == "__main__":

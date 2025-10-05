@@ -1,5 +1,7 @@
+"""Inference utilities for histo-omics-lite."""
+
 from __future__ import annotations
 
-from .cli import export_embeddings, main
+from histo_omics_lite.inference.embeddings import generate_embeddings
 
-__all__ = ["export_embeddings", "main"]
+__all__ = ["generate_embeddings"]

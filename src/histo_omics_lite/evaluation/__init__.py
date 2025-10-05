@@ -1,16 +1,17 @@
-from __future__ import annotations
+"""Evaluation utilities for histo-omics-lite."""
 
-from .bootstrap import bootstrap_confidence_intervals, compute_metrics_with_ci, format_metric_with_ci
-from .calibration import compute_calibration_metrics, plot_calibration_curve, save_calibration_results
-from .retrieval import RetrievalMetrics, compute_retrieval_metrics
+from .evaluator import evaluate_model
+from .metrics import (
+    compute_retrieval_metrics,
+    compute_classification_metrics,
+    compute_calibration_metrics,
+    bootstrap_confidence_intervals,
+)
 
 __all__ = [
-    "bootstrap_confidence_intervals",
-    "compute_metrics_with_ci", 
-    "format_metric_with_ci",
+    "evaluate_model",
+    "compute_retrieval_metrics", 
+    "compute_classification_metrics",
     "compute_calibration_metrics",
-    "plot_calibration_curve",
-    "save_calibration_results",
-    "RetrievalMetrics",
-    "compute_retrieval_metrics",
+    "bootstrap_confidence_intervals",
 ]
